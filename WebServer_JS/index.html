@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="keywords" content="" />
+<meta name="description" content="" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<style>
+.wordBorder{border: 2px solid red;}
+.wordCenter{text-align: center;}
+</style>
+<title>Web Service</title>
+<link href="style.css" rel="stylesheet" type="text/css" media="screen" />
+<script src="jquery.js"></script>
+<script>
+	function SendFunc()
+	{
+		var email_1_text = document.getElementById("email_1").value;
+		var email_2_text = document.getElementById("email_2").value;
+		var payload = document.getElementById("payload").value;
+		if(email_1_text==""&&email_2_text=="")
+		{
+			alert("请输入目标邮箱");
+			return;
+		}
+		if(payload=="")
+		{
+			alert("请输入发送内容");
+			return;
+		}
+		var urls = Array();
+		if(email_1_text!=""){
+			urls.push(email_1_text);
+		}
+		if(email_2_text!="")
+		{
+			urls.push(email_2_text);
+		}
+		var select = document.getElementById("chooser");
+		var index = select.selectedIndex;
+		var selectValue = select.options[index].value;
+		if(selectValue=="Soap")
+		{
+			console.log("调用Soap接口");
+			getSoap(urls,urls.length,payload);
+		}
+		else
+		{
+			console.log("调用rest接口");
+			getRest(urls,urls.length,payload);
+		}
+
+	}
+	function getSoap(_url,len,_payload)
+	{
+		var body = "";
+
+		if(len==1)
+		{	body+="<q0:sendEmali>\r\n"+
+				  "<q0:_url>"+_url[0]+"</q0:_url>\r\n"+
+				  "<q0:_payload>"+_payload+"</q0:_payload>\r\n"+
+				  "</q0:sendEmali>\r\n";
+		}
+		else
+		{
+			body+="<q0:sendEmaliBatch>\r\n"+
+				  "<q0:_urls>\r\n";
+			for(var i = 0;i<len;i++)
+			{
+				body+="<q0:string>"+_url[i]+"</q0:string>\r\n";
+			}
+			body+="  </q0:_urls>\r\n"+
+				  "<q0:_payload>"+_payload+"</q0:_payload>\r\n"+
+				  "</q0:sendEmaliBatch>"
+		}
+
+		console.log("数组长度为"+len);
+		data = 	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"+
+				"<soapenv:Envelope\r\n"+
+				"xmlns:q0=\"spyne.examples.mail.soap\"\r\n"+
+				"xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\r\n"+  
+				"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\r\n"+
+				"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n"+  
+				"<soapenv:Header>\r\n"+
+				"</soapenv:Header>\r\n"+
+				"<soapenv:Body>\r\n"+
+				body+
+				"</soapenv:Body>\r\n"+  
+				"</soapenv:Envelope>\r\n"
+		var url="http://localhost:8000/?wsdl";
+		if (window.DOMParser)
+		{ // Firefox, Chrome, Opera, etc.
+			var xmlhttp = new XMLHttpRequest();
+		}
+		else // Internet Explorer
+		{
+			var xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+			xmlhttp.SetRequestHeader ("Content-Type","text/xml; charset=utf-8");
+			xmlhttp.SetRequestHeader ("Content-Length",data.length);
+			xmlhttp.SetRequestHeader ("host","localhost:8080");
+			xmlhttp.SetRequestHeader ("SOAPAction","getEntity");
+		} 
+		console.log(data);
+		xmlhttp.onreadystatechange = function(){
+
+			if(xmlhttp.status==0||xmlhttp.status==200)
+			{
+				console.log("readyState:"+xmlhttp.readyState);
+				console.log("status:"+xmlhttp.status);
+				console.log("statusText:"+xmlhttp.statusText);
+				var x =xmlhttp.responseText;
+				var y = xmlhttp.responseURL;
+				var z = xmlhttp.responseXML;
+				console.log("ResponseText:"+x);
+				console.log("ResponseURL:"+y);
+				console.log("ResponseXML:"+z);
+				alert("邮件发送成功！");
+			}
+		}
+		xmlhttp.open("post",url,true); 
+
+		xmlhttp.send(data);
+	}
+	function getRest(_url,len,_payload)
+	{
+		var post_data = {};
+		if(len==1)
+		{
+			post_data['_url'] = _url[0];
+			post_data['_payload'] = _payload;
+		}
+		else
+		{
+			post_data['_url'] = _url;
+			post_data['_payload'] = _payload;
+		}
+		console.log(post_data);
+		console.log(typeof(post_data));
+		// var _data = 
+		// {
+		// 	"_url":_url[0],
+		// 	"_payload":_payload
+		// }
+		// console.log(_data);
+		var target_url = "";
+		if(len==1)
+		{
+			target_url+="http://127.0.0.1:5000/sendEmail";
+		}
+		else
+		{
+			target_url+="http://127.0.0.1:5000/sendEmailBatch";
+		}
+		console.log(target_url);
+		$.ajax({
+			url:target_url,
+			type:'post',
+			dataType: 'json',
+			data:JSON.stringify(post_data),
+			contentType:"application/json; charset=utf-8",
+			success:function(data)
+			{
+				console.log(data);
+				alert("邮件发送成功");
+			},
+			error:function(responseText)
+			{
+					alert("邮件发送成功");
+			}
+		})
+	}
+</script>
+</head>
+<body>
+<div id="wrapper">
+	<div id="header">
+		<div id="logo">
+			<h1><a href="#">Web Service </a></h1>
+			<p> design by <a href="" rel="nofollow" target="_blank" title="">郑康</a></p>
+		</div>
+	</div>
+	<!-- end #header -->
+</div>
+
+<input type="text" id="email_1" placeholder="请输入收件人：" style="position: relative;">
+<input type="text" id="email_2" placeholder="请输入收件人：" style="position: relative;">
+
+<form id="Ws_chooser" style="position: relative;">
+	<select style="width: 200px;height: 50px;font-size: 30px;border-radius: 10%;" id="chooser">
+	<option value="Soap">Soap</option>
+	<option value="Rest">Rest</option>
+	</select>
+</form>
+
+<input type="text" id="payload" style="width:500px;height: 80px; position: relative;">
+
+<button type="button" id="send" onclick="SendFunc()" style="position: relative;width: 100px;height: 40px;">Send</button>
+<button type="reset" id="reset" style="position: relative;width: 100px;height: 40px;">Reset</button>
+</body>
+</html>
